@@ -1,8 +1,192 @@
 import React, { useState } from 'react';
+import styled from 'styled-components';
 import { parseExcelFile } from '../../utils/excelParser';
 import { useSampleData } from '../../utils/sampleDataContext.jsx';
 
 const requiredColumns = ['regno', 'score'];
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+`;
+
+const Card = styled.div`
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 2rem;
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+`;
+
+const Select = styled.select`
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  color: #111827;
+  font-size: 0.875rem;
+  transition: all 200ms ease-in-out;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+`;
+
+const ModeSelector = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const ModeButtonGroup = styled.div`
+  display: inline-flex;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 0.25rem;
+  background-color: #f9fafb;
+`;
+
+const ModeButton = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 200ms ease-in-out;
+  background-color: ${props => props.active ? 'white' : 'transparent'};
+  color: ${props => props.active ? '#2563eb' : '#4b5563'};
+  box-shadow: ${props => props.active ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none'};
+
+  &:hover {
+    color: ${props => props.active ? '#2563eb' : '#111827'};
+  }
+`;
+
+const Input = styled.input`
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  color: #111827;
+  font-size: 0.875rem;
+  transition: all 200ms ease-in-out;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+
+  &::file-selector-button {
+    margin-right: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    cursor: pointer;
+    transition: background-color 150ms ease-in-out;
+
+    &:hover {
+      background-color: #dbeafe;
+    }
+  }
+`;
+
+const HelperText = styled.p`
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const Button = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background-color: ${props => props.variant === 'success' ? '#059669' : '#2563eb'};
+  border: none;
+  cursor: pointer;
+  transition: all 200ms ease-in-out;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    background-color: ${props => props.variant === 'success' ? '#047857' : '#1d4ed8'};
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px ${props => props.variant === 'success' ? 'rgba(5, 150, 105, 0.5)' : 'rgba(59, 130, 246, 0.5)'};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 0.375rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+`;
+
+const SuccessMessage = styled.div`
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 0.375rem;
+  color: #059669;
+  font-size: 0.875rem;
+`;
 
 const ScoreUpload = () => {
   const { data, updateScores } = useSampleData();
@@ -149,190 +333,115 @@ const ScoreUpload = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">Upload Exam Scores</h2>
+    <Container>
+      <Card>
+        <Title>Upload Exam Scores</Title>
         
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Training Module
-            </label>
-            <select
-              value={selectedModule}
-              onChange={handleModuleChange}
-              className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        <FormGroup>
+          <Label>Select Training Module</Label>
+          <Select
+            value={selectedModule}
+            onChange={handleModuleChange}
+          >
+            <option value="">-- Select Module --</option>
+            {modules.map((mod) => (
+              <option key={mod._id} value={mod._id}>{mod.title}</option>
+            ))}
+          </Select>
+        </FormGroup>
+
+        <ModeSelector>
+          <ModeButtonGroup>
+            <ModeButton
+              active={mode === 'excel'}
+              onClick={() => { setMode('excel'); setError(''); setSuccessMessage(''); }}
             >
-              <option value="">-- Select Module --</option>
-              {modules.map((mod) => (
-                <option key={mod._id} value={mod._id}>{mod.title}</option>
-              ))}
-            </select>
-          </div>
+              Excel Upload
+            </ModeButton>
+            <ModeButton
+              active={mode === 'individual'}
+              onClick={() => { setMode('individual'); setError(''); setSuccessMessage(''); }}
+            >
+              Individual Entry
+            </ModeButton>
+          </ModeButtonGroup>
+        </ModeSelector>
 
-          <div className="mb-8">
-            <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
-              <button
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  mode === 'excel'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                onClick={() => { setMode('excel'); setError(''); setSuccessMessage(''); }}
-              >
-                Excel Upload
-              </button>
-              <button
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  mode === 'individual'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                onClick={() => { setMode('individual'); setError(''); setSuccessMessage(''); }}
-              >
-                Individual Entry
-              </button>
-            </div>
-          </div>
+        {mode === 'excel' ? (
+          <>
+            <FormGroup>
+              <Label>Upload Score Sheet</Label>
+              <Input
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileChange}
+              />
+              <HelperText>
+                Excel file should contain columns: Registration Number (regno) and Score
+              </HelperText>
+            </FormGroup>
 
-          {mode === 'excel' ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Score Sheet
-                </label>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100
-                    focus:outline-none"
+            <ButtonGroup>
+              <Button onClick={handleParse} disabled={isSubmitting}>
+                Parse Excel
+              </Button>
+              <Button
+                variant="success"
+                onClick={handleSubmit}
+                disabled={parsedData.length === 0 || isSubmitting}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Scores'}
+              </Button>
+            </ButtonGroup>
+          </>
+        ) : (
+          <>
+            <FormGrid>
+              <FormGroup>
+                <Label htmlFor="regno">Registration Number</Label>
+                <Input
+                  id="regno"
+                  type="text"
+                  name="regno"
+                  value={formData.regno}
+                  onChange={handleInputChange}
+                  placeholder="Enter registration number"
                 />
-                <p className="mt-2 text-sm text-gray-500">
-                  Excel file should contain columns: Registration Number (regno) and Score
-                </p>
-              </div>
+              </FormGroup>
+              <FormGroup>
+                <Label htmlFor="score">Score</Label>
+                <Input
+                  id="score"
+                  type="number"
+                  name="score"
+                  value={formData.score}
+                  onChange={handleInputChange}
+                  placeholder="Enter score (0-100)"
+                  min="0"
+                  max="100"
+                />
+              </FormGroup>
+            </FormGrid>
 
-              <div className="flex space-x-4">
-                <button
-                  onClick={handleParse}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Parse Excel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={parsedData.length === 0 || isSubmitting}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Scores'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="regno" className="block text-sm font-medium text-gray-700 mb-1">
-                    Registration Number
-                  </label>
-                  <input
-                    id="regno"
-                    type="text"
-                    name="regno"
-                    value={formData.regno}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter registration number"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="score" className="block text-sm font-medium text-gray-700 mb-1">
-                    Score
-                  </label>
-                  <input
-                    id="score"
-                    type="number"
-                    name="score"
-                    min="0"
-                    max="100"
-                    value={formData.score}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter score (0-100)"
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-4">
-                <button
-                  onClick={addIndividualEntry}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Add Entry
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={individualEntries.length === 0 || isSubmitting}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Scores'}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {(mode === 'excel' ? parsedData.length > 0 : individualEntries.length > 0) && (
-          <div className="mt-8 overflow-hidden border border-gray-200 rounded-lg">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                      Registration Number
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                      Score
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {(mode === 'excel' ? parsedData : individualEntries).map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {row.regno}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {row.score}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            <ButtonGroup>
+              <Button onClick={addIndividualEntry}>
+                Add Score
+              </Button>
+              <Button
+                variant="success"
+                onClick={handleSubmit}
+                disabled={individualEntries.length === 0 || isSubmitting}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Scores'}
+              </Button>
+            </ButtonGroup>
+          </>
         )}
 
-        {error && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
-        {successMessage && (
-          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-sm text-green-600">{successMessage}</p>
-          </div>
-        )}
-      </div>
-    </div>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+        {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
+      </Card>
+    </Container>
   );
 };
 

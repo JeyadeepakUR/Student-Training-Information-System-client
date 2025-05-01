@@ -1,98 +1,197 @@
-import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 
-const AdminLayout = () => {
+const LayoutContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  background-color: #f9fafb;
+`;
+
+const Sidebar = styled.div`
+  width: ${props => props.isOpen ? '250px' : '0'};
+  background-color: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: width 0.3s ease;
+  overflow: hidden;
+  position: fixed;
+  height: 100vh;
+  z-index: 1000;
+`;
+
+const MainContent = styled.div`
+  flex: 1;
+  margin-left: ${props => props.isOpen ? '250px' : '0'};
+  transition: margin-left 0.3s ease;
+  padding: 2rem;
+`;
+
+const MenuButton = styled.button`
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 1001;
+  background: white;
+  border: none;
+  cursor: pointer;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #2563eb;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const MenuIcon = styled.div`
+  width: 20px;
+  height: 16px;
+  position: relative;
+  transform: rotate(0deg);
+  transition: 0.5s ease-in-out;
+  cursor: pointer;
+  
+  span {
+    display: block;
+    position: absolute;
+    height: 2px;
+    width: 100%;
+    background: currentColor;
+    border-radius: 2px;
+    opacity: 1;
+    left: 0;
+    transform: rotate(0deg);
+    transition: .25s ease-in-out;
+    
+    &:nth-child(1) {
+      top: ${props => props.isOpen ? '7px' : '0px'};
+      transform: ${props => props.isOpen ? 'rotate(135deg)' : 'rotate(0)'};
+    }
+    
+    &:nth-child(2) {
+      top: 7px;
+      opacity: ${props => props.isOpen ? '0' : '1'};
+      transform: ${props => props.isOpen ? 'translateX(20px)' : 'translateX(0)'};
+    }
+    
+    &:nth-child(3) {
+      top: ${props => props.isOpen ? '7px' : '14px'};
+      transform: ${props => props.isOpen ? 'rotate(-135deg)' : 'rotate(0)'};
+    }
+  }
+`;
+
+const MenuList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-top: 4rem;
+`;
+
+const MenuItem = styled.li`
+  padding: 0.5rem 1rem;
+`;
+
+const MenuLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: ${props => props.active ? '#2563eb' : '#4b5563'};
+  text-decoration: none;
+  border-radius: 0.375rem;
+  font-weight: ${props => props.active ? '500' : 'normal'};
+  background-color: ${props => props.active ? '#eff6ff' : 'transparent'};
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: ${props => props.active ? '#eff6ff' : '#f3f4f6'};
+    color: ${props => props.active ? '#2563eb' : '#1f2937'};
+  }
+`;
+
+const LogoutButton = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: #dc2626;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+
+  &:hover {
+    background-color: #fee2e2;
+  }
+`;
+
+const AdminLayout = ({ children }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('adminAuth');
+    localStorage.removeItem('isAdminAuthenticated');
     navigate('/admin/login');
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-xl font-bold text-blue-600">Admin Panel</span>
-              </div>
-              <div className="hidden md:block">
-                <div className="ml-10 flex items-center space-x-4">
-                  <NavLink
-                    to="/admin/dashboard"
-                    className={({ isActive }) =>
-                      `px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-in-out ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`
-                    }
-                  >
-                    Dashboard
-                  </NavLink>
-                  <NavLink
-                    to="/admin/bulk-upload"
-                    className={({ isActive }) =>
-                      `px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-in-out ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`
-                    }
-                  >
-                    Bulk Upload
-                  </NavLink>
-                  <NavLink
-                    to="/admin/score-upload"
-                    className={({ isActive }) =>
-                      `px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-in-out ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`
-                    }
-                  >
-                    Score Upload
-                  </NavLink>
-                  <NavLink
-                    to="/admin/training-modules"
-                    className={({ isActive }) =>
-                      `px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-in-out ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`
-                    }
-                  >
-                    Training Modules
-                  </NavLink>
-                </div>
-              </div>
-            </div>
-            <div className="hidden md:block">
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-150 ease-in-out shadow-sm hover:shadow"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+  const menuItems = [
+    { path: '/admin/dashboard', label: 'Dashboard' },
+    // { path: '/admin/students', label: 'Students' },
+    { path: '/admin/bulk-upload', label: 'Bulk Upload' },
+    { path: '/admin/scores', label: 'Scores' },
+    { path: '/admin/training', label: 'Training' },
+  ];
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <Outlet />
-        </div>
-      </main>
-    </div>
+  return (
+    <LayoutContainer>
+      <MenuButton onClick={() => setIsOpen(!isOpen)}>
+        <MenuIcon isOpen={isOpen}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </MenuIcon>
+      </MenuButton>
+
+      <Sidebar isOpen={isOpen}>
+        <MenuList>
+          {menuItems.map((item) => (
+            <MenuItem key={item.path}>
+              <MenuLink
+                to={item.path}
+                active={location.pathname === item.path}
+                onClick={() => setIsOpen(false)}
+              >
+                {item.label}
+              </MenuLink>
+            </MenuItem>
+          ))}
+          <MenuItem>
+            <LogoutButton onClick={handleLogout}>
+              Logout
+            </LogoutButton>
+          </MenuItem>
+        </MenuList>
+      </Sidebar>
+
+      <MainContent isOpen={isOpen}>
+        {children}
+      </MainContent>
+    </LayoutContainer>
   );
 };
 

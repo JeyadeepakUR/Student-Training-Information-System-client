@@ -1,4 +1,43 @@
 import React from 'react';
+import styled from 'styled-components';
+
+const Container = styled.div`
+  padding: 1rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+`;
+
+const ProfileImage = styled.img`
+  margin-bottom: 1rem;
+  width: 12rem;
+  height: 12rem;
+  object-fit: contain;
+`;
+
+const InfoText = styled.p`
+  margin-bottom: 0.5rem;
+`;
+
+const Strong = styled.strong`
+  font-weight: 600;
+`;
+
+const SubTitle = styled.h3`
+  margin-top: 1rem;
+  font-weight: 600;
+`;
+
+const TrainingList = styled.ul`
+  list-style-type: disc;
+  list-style-position: inside;
+`;
 
 const StudentProfile = ({ student }) => {
   if (!student) {
@@ -14,20 +53,19 @@ const StudentProfile = ({ student }) => {
   };
 
   return (
-    <div className="p-4 bg-white rounded shadow">
-      <h2 className="text-2xl font-semibold mb-4">{student.name} - Profile</h2>
-      <img
+    <Container>
+      <Title>{student.name} - Profile</Title>
+      <ProfileImage
         src={getAnimationImage(student.numTrainingsCompleted)}
         alt="Training Progress Animation"
-        className="mb-4 w-48 h-48 object-contain"
       />
-      <p><strong>Registration No:</strong> {student.regNo}</p>
-      <p><strong>Email:</strong> {student.email}</p>
-      <p><strong>Batch:</strong> {student.batch}</p>
-      <p><strong>Passout Year:</strong> {student.passoutYear}</p>
-      <p><strong>Number of Trainings Completed:</strong> {student.numTrainingsCompleted}</p>
-      <h3 className="mt-4 font-semibold">Trainings Attended:</h3>
-      <ul className="list-disc list-inside">
+      <InfoText><Strong>Registration No:</Strong> {student.regNo}</InfoText>
+      <InfoText><Strong>Email:</Strong> {student.email}</InfoText>
+      <InfoText><Strong>Batch:</Strong> {student.batch}</InfoText>
+      <InfoText><Strong>Passout Year:</Strong> {student.passoutYear}</InfoText>
+      <InfoText><Strong>Number of Trainings Completed:</Strong> {student.numTrainingsCompleted}</InfoText>
+      <SubTitle>Trainings Attended:</SubTitle>
+      <TrainingList>
         {student.trainings && student.trainings.length > 0 ? (
           student.trainings.map((training, idx) => (
             <li key={idx}>{training.moduleId}</li> // moduleId can be replaced with module title if available
@@ -35,8 +73,8 @@ const StudentProfile = ({ student }) => {
         ) : (
           <li>No trainings attended yet.</li>
         )}
-      </ul>
-    </div>
+      </TrainingList>
+    </Container>
   );
 };
 

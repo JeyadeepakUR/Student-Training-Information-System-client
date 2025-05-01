@@ -1,35 +1,81 @@
 import React from 'react';
+import styled from 'styled-components';
+
+const Container = styled.div`
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+`;
+
+const Title = styled.h3`
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
+`;
+
+const TableHead = styled.thead`
+  background-color: #e5e7eb;
+  text-align: left;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const TableHeader = styled.th`
+  padding: 1rem;
+  border-bottom: 1px solid #d1d5db;
+`;
+
+const TableRow = styled.tr`
+  cursor: pointer;
+  border-top: 1px solid #d1d5db;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f3f4f6;
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 1rem;
+`;
 
 const StudentList = ({ students, batch, onStudentSelect }) => {
   console.log('Rendering StudentList with students:', students);
   return (
-    <div style={{ padding: '1rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' }}>{batch} Students</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '0.5rem', overflow: 'hidden' }}>
-        <thead style={{ backgroundColor: '#e5e7eb', textAlign: 'left', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <Container>
+      <Title>{batch} Students</Title>
+      <Table>
+        <TableHead>
           <tr>
-            <th style={{ padding: '1rem', borderBottom: '1px solid #d1d5db' }}>Name</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid #d1d5db' }}>Reg. No</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid #d1d5db' }}>Email</th>
+            <TableHeader>Name</TableHeader>
+            <TableHeader>Reg. No</TableHeader>
+            <TableHeader>Email</TableHeader>
           </tr>
-        </thead>
+        </TableHead>
         <tbody>
           {students.map((stu, idx) => (
-            <tr
+            <TableRow
               key={idx}
               onClick={() => onStudentSelect(stu)}
-              style={{ cursor: 'pointer', borderTop: '1px solid #d1d5db', transition: 'background-color 0.2s ease' }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-              <td style={{ padding: '1rem' }}>{stu.name}</td>
-              <td style={{ padding: '1rem' }}>{stu.regNo}</td>
-              <td style={{ padding: '1rem' }}>{stu.email}</td>
-            </tr>
+              <TableCell>{stu.name}</TableCell>
+              <TableCell>{stu.regNo}</TableCell>
+              <TableCell>{stu.email}</TableCell>
+            </TableRow>
           ))}
         </tbody>
-      </table>
-    </div>
+      </Table>
+    </Container>
   );
 };
 

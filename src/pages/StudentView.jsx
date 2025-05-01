@@ -1,11 +1,32 @@
 import React from 'react';
+import styled from 'styled-components';
+
+const Container = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #374151;
+`;
+
+const Description = styled.p`
+  margin-top: 1rem;
+  color: #4b5563;
+`;
 
 const StudentView = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold text-gray-700">Student View Page</h1>
-      <p className="mt-4 text-gray-600">This page will display student-specific information.</p>
-    </div>
+    <Container>
+      <Title>Student View Page</Title>
+      <Description>This page will display student-specific information.</Description>
+    </Container>
   );
 };
 

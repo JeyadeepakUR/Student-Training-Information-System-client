@@ -1,7 +1,146 @@
 import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import sampleData from '../../sampleData.json';
 
 const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+`;
+
+const Card = styled.div`
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 2rem;
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const TotalStatsCard = styled.div`
+  background: linear-gradient(to bottom right, #3b82f6, #2563eb);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+`;
+
+const BatchStatsCard = styled.div`
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 200ms ease-in-out;
+  
+  &:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-0.25rem);
+  }
+`;
+
+const StatsLabel = styled.p`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${props => props.isTotal ? '#e0e7ff' : '#4b5563'};
+  margin-bottom: 0.5rem;
+`;
+
+const StatsValue = styled.p`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: ${props => props.isTotal ? 'white' : '#111827'};
+`;
+
+const TableHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+`;
+
+const TableTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const StudentCount = styled.span`
+  padding: 0.25rem 0.75rem;
+  background-color: #eff6ff;
+  color: #1e40af;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const TableContainer = styled.div`
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const TableHead = styled.thead`
+  background-color: #f9fafb;
+`;
+
+const TableHeaderCell = styled.th`
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const TableBody = styled.tbody`
+  background-color: white;
+`;
+
+const TableRow = styled.tr`
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 150ms ease-in-out;
+  
+  &:hover {
+    background-color: #f9fafb;
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 1rem 1.5rem;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: ${props => props.isName ? '#111827' : '#4b5563'};
+  font-weight: ${props => props.isName ? '500' : 'normal'};
+`;
 
 const AdminDashboard = () => {
   const [counts, setCounts] = useState({});
@@ -24,62 +163,56 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-8">Admin Dashboard</h2>
+    <Container>
+      <Card>
+        <Title>Admin Dashboard</Title>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg shadow-md">
-            <p className="text-sm font-medium text-blue-100 mb-2">Total Students</p>
-            <p className="text-3xl font-bold text-white">{counts.total || 0}</p>
-          </div>
+        <StatsGrid>
+          <TotalStatsCard>
+            <StatsLabel isTotal>Total Students</StatsLabel>
+            <StatsValue isTotal>{counts.total || 0}</StatsValue>
+          </TotalStatsCard>
           {batchTypes.map(batch => (
-            <div
+            <BatchStatsCard
               key={batch}
               onClick={() => fetchStudentsByBatch(batch)}
-              className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer transform hover:-translate-y-1"
             >
-              <p className="text-sm font-medium text-gray-600 mb-2">{batch}</p>
-              <p className="text-3xl font-bold text-gray-900">{counts[batch] || 0}</p>
-            </div>
+              <StatsLabel>{batch}</StatsLabel>
+              <StatsValue>{counts[batch] || 0}</StatsValue>
+            </BatchStatsCard>
           ))}
-        </div>
-      </div>
+        </StatsGrid>
+      </Card>
 
       {selectedBatch && (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">{selectedBatch} Students</h3>
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-              {students.length} students
-            </span>
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Reg. No</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Email</th>
+        <Card>
+          <TableHeader>
+            <TableTitle>{selectedBatch} Students</TableTitle>
+            <StudentCount>{students.length} students</StudentCount>
+          </TableHeader>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <tr>
+                  <TableHeaderCell>Name</TableHeaderCell>
+                  <TableHeaderCell>Reg. No</TableHeaderCell>
+                  <TableHeaderCell>Email</TableHeaderCell>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              </TableHead>
+              <TableBody>
                 {students.map((stu, idx) => (
-                  <tr 
-                    key={idx} 
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{stu.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{stu.regNo}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{stu.email}</td>
-                  </tr>
+                  <TableRow key={idx}>
+                    <TableCell isName>{stu.name}</TableCell>
+                    <TableCell>{stu.regNo}</TableCell>
+                    <TableCell>{stu.email}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
       )}
-    </div>
+    </Container>
   );
 };
 
