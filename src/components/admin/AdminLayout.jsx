@@ -182,7 +182,7 @@ const AdminLayout = ({ children }) => {
           ))}
           <MenuItem>
             <LogoutButton onClick={handleLogout}>
-              Logout
+                Logout
             </LogoutButton>
           </MenuItem>
         </MenuList>

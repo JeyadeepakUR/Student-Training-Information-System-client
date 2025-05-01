@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import sampleData from '../../sampleData.json';
+import { getAllStudents, getStudentDetails } from '../services/api';
+import CreateModuleModal from '../components/admin/CreateModuleModal';
+import StudentDetailsModal from '../components/admin/StudentDetailsModal';
 
 const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
 
@@ -128,6 +130,7 @@ const TableBody = styled.tbody`
 const TableRow = styled.tr`
   border-bottom: 1px solid #e5e7eb;
   transition: background-color 150ms ease-in-out;
+  cursor: pointer;
   
   &:hover {
     background-color: #f9fafb;
@@ -142,25 +145,109 @@ const TableCell = styled.td`
   font-weight: ${props => props.isName ? '500' : 'normal'};
 `;
 
+const ActionButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
 const AdminDashboard = () => {
   const [counts, setCounts] = useState({});
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [students, setStudents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isCreateModuleModalOpen, setIsCreateModuleModalOpen] = useState(false);
+  const [isStudentDetailsModalOpen, setIsStudentDetailsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
-    const totalStudents = sampleData.students.length;
-    const batchCounts = batchTypes.reduce((acc, batch) => {
-      acc[batch] = sampleData.students.filter(s => s.batch === batch).length;
-      return acc;
-    }, {});
-    setCounts({ total: totalStudents, ...batchCounts });
+    fetchAllStudents();
   }, []);
+
+  const fetchAllStudents = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await getAllStudents();
+      const allStudents = response.data.students;
+      
+      // Calculate counts
+      const totalStudents = allStudents.length;
+      const batchCounts = batchTypes.reduce((acc, batch) => {
+        acc[batch] = allStudents.filter(s => s.batch === batch).length;
+        return acc;
+      }, {});
+      
+      setCounts({ total: totalStudents, ...batchCounts });
+      
+      // If a batch is selected, update the filtered students
+      if (selectedBatch) {
+        const filteredStudents = allStudents.filter(s => s.batch === selectedBatch);
+        setStudents(filteredStudents);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch students data');
+      setCounts({});
+      setStudents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchStudentsByBatch = (batch) => {
     setSelectedBatch(batch);
-    const filteredStudents = sampleData.students.filter(s => s.batch === batch);
-    setStudents(filteredStudents);
+    setStudents([]); // Clear current students
+    
+    // Filter students from the API response
+    getAllStudents().then(response => {
+      const filteredStudents = response.data.students.filter(s => s.batch === batch);
+      setStudents(filteredStudents);
+    }).catch(err => {
+      setError(err.response?.data?.message || 'Failed to fetch students data');
+      setStudents([]);
+    });
   };
+
+  const handleCreateModule = () => {
+    setIsCreateModuleModalOpen(true);
+  };
+
+  const handleStudentClick = async (studentId) => {
+    try {
+      const studentDetails = await getStudentDetails(studentId);
+      setSelectedStudent(studentDetails.student);
+      setIsStudentDetailsModalOpen(true);
+    } catch (err) {
+      console.error('Failed to fetch student details:', err);
+    }
+  };
+
+  if (error) {
+    return (
+      <Container>
+        <Card>
+          <Title>Error</Title>
+          <div style={{ color: '#dc2626', textAlign: 'center' }}>{error}</div>
+        </Card>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -170,7 +257,9 @@ const AdminDashboard = () => {
         <StatsGrid>
           <TotalStatsCard>
             <StatsLabel isTotal>Total Students</StatsLabel>
-            <StatsValue isTotal>{counts.total || 0}</StatsValue>
+            <StatsValue isTotal>
+              {isLoading ? 'Loading...' : counts.total || 0}
+            </StatsValue>
           </TotalStatsCard>
           {batchTypes.map(batch => (
             <BatchStatsCard
@@ -178,7 +267,9 @@ const AdminDashboard = () => {
               onClick={() => fetchStudentsByBatch(batch)}
             >
               <StatsLabel>{batch}</StatsLabel>
-              <StatsValue>{counts[batch] || 0}</StatsValue>
+              <StatsValue>
+                {isLoading ? 'Loading...' : counts[batch] || 0}
+              </StatsValue>
             </BatchStatsCard>
           ))}
         </StatsGrid>
@@ -187,8 +278,13 @@ const AdminDashboard = () => {
       {selectedBatch && (
         <Card>
           <TableHeader>
-            <TableTitle>{selectedBatch} Students</TableTitle>
-            <StudentCount>{students.length} students</StudentCount>
+            <div>
+              <TableTitle>{selectedBatch} Students</TableTitle>
+              <StudentCount>{students.length} students</StudentCount>
+            </div>
+            <ActionButton onClick={handleCreateModule}>
+              Create Training Module
+            </ActionButton>
           </TableHeader>
           <TableContainer>
             <Table>
@@ -197,20 +293,50 @@ const AdminDashboard = () => {
                   <TableHeaderCell>Name</TableHeaderCell>
                   <TableHeaderCell>Reg. No</TableHeaderCell>
                   <TableHeaderCell>Email</TableHeaderCell>
+                  <TableHeaderCell>Passout Year</TableHeaderCell>
                 </tr>
               </TableHead>
               <TableBody>
-                {students.map((stu, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell isName>{stu.name}</TableCell>
-                    <TableCell>{stu.regNo}</TableCell>
-                    <TableCell>{stu.email}</TableCell>
+                {students.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan="4" style={{ textAlign: 'center' }}>
+                      {isLoading ? 'Loading...' : 'No students found'}
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  students.map((student) => (
+                    <TableRow 
+                      key={student._id} 
+                      onClick={() => handleStudentClick(student._id)}
+                    >
+                      <TableCell isName>{student.name}</TableCell>
+                      <TableCell>{student.regNo}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>{student.passoutYear}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
         </Card>
+      )}
+
+      <CreateModuleModal
+        isOpen={isCreateModuleModalOpen}
+        onClose={() => setIsCreateModuleModalOpen(false)}
+        studentIds={students.map(student => student._id)}
+        batchName={selectedBatch}
+      />
+
+      {isStudentDetailsModalOpen && (
+        <StudentDetailsModal
+          student={selectedStudent}
+          onClose={() => {
+            setIsStudentDetailsModalOpen(false);
+            setSelectedStudent(null);
+          }}
+        />
       )}
     </Container>
   );

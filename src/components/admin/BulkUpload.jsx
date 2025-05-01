@@ -1,470 +1,414 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { parseExcelFile } from '../../utils/excelParser';
-
-const requiredColumns = ['name', 'regno', 'mail'];
-const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
-const currentYear = new Date().getFullYear();
-const passoutYears = Array.from({ length: 8 }, (_, i) => (currentYear + i - 1).toString());
+import { bulkRegisterStudents, registerStudent } from '../../services/api';
 
 const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const Card = styled.div`
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   padding: 1.5rem;
+  background-color: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  max-width: 48rem;
+  margin: 0 auto;
 `;
 
 const Title = styled.h2`
   font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 2rem;
-`;
-
-const ModeSelector = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const ModeButtonGroup = styled.div`
-  display: inline-flex;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  padding: 0.25rem;
-  background-color: #f9fafb;
-`;
-
-const ModeButton = styled.button`
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 200ms ease-in-out;
-  background-color: ${props => props.active ? 'white' : 'transparent'};
-  color: ${props => props.active ? '#2563eb' : '#4b5563'};
-  box-shadow: ${props => props.active ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none'};
-
-  &:hover {
-    color: ${props => props.active ? '#2563eb' : '#111827'};
-  }
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
+  font-weight: 600;
   margin-bottom: 1.5rem;
+  color: #111827;
+`;
 
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
 const Label = styled.label`
-  display: block;
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 0.5rem;
 `;
 
 const Select = styled.select`
-  display: block;
   width: 100%;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  background-color: white;
-  color: #111827;
   font-size: 0.875rem;
-  transition: all 200ms ease-in-out;
-
+  
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
 `;
 
 const Input = styled.input`
-  display: block;
   width: 100%;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  background-color: white;
-  color: #111827;
   font-size: 0.875rem;
-  transition: all 200ms ease-in-out;
-
+  
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
+`;
 
-  &::file-selector-button {
-    margin-right: 1rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    border: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    background-color: #eff6ff;
-    color: #1d4ed8;
-    cursor: pointer;
-    transition: background-color 150ms ease-in-out;
+const FileInput = styled.input`
+  display: none;
+`;
 
-    &:hover {
-      background-color: #dbeafe;
-    }
+const FileInputLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #f3f4f6;
+  border: 1px dashed #d1d5db;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 150ms;
+
+  &:hover {
+    background-color: #e5e7eb;
   }
 `;
 
-const HelperText = styled.p`
-  margin-top: 0.5rem;
+const FileName = styled.span`
   font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  color: #374151;
 `;
 
 const Button = styled.button`
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  background-color: #2563eb;
   color: white;
-  background-color: ${props => props.variant === 'success' ? '#059669' : '#2563eb'};
   border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 200ms ease-in-out;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: background-color 150ms;
 
   &:hover {
-    background-color: ${props => props.variant === 'success' ? '#047857' : '#1d4ed8'};
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px ${props => props.variant === 'success' ? 'rgba(5, 150, 105, 0.5)' : 'rgba(59, 130, 246, 0.5)'};
+    background-color: #1d4ed8;
   }
 
   &:disabled {
-    opacity: 0.5;
+    background-color: #93c5fd;
     cursor: not-allowed;
   }
 `;
 
 const ErrorMessage = styled.div`
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: #fef2f2;
-  border: 1px solid #fee2e2;
-  border-radius: 0.375rem;
   color: #dc2626;
   font-size: 0.875rem;
+  margin-top: 0.5rem;
 `;
 
 const SuccessMessage = styled.div`
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: #f0fdf4;
-  border: 1px solid #dcfce7;
-  border-radius: 0.375rem;
   color: #059669;
   font-size: 0.875rem;
+  margin-top: 0.5rem;
 `;
 
+const TabContainer = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`;
+
+const Tab = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: ${props => props.active ? '#2563eb' : '#f3f4f6'};
+  color: ${props => props.active ? 'white' : '#374151'};
+  border: 1px solid ${props => props.active ? '#2563eb' : '#d1d5db'};
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms;
+
+  &:hover {
+    background-color: ${props => props.active ? '#1d4ed8' : '#e5e7eb'};
+  }
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
+
 const BulkUpload = () => {
-  const [mode, setMode] = useState('excel');
-  const [file, setFile] = useState(null);
-  const [parsedData, setParsedData] = useState([]);
-  const [individualEntries, setIndividualEntries] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    regno: '',
-    mail: '',
-    batch: '',
-    passoutYear: '',
-  });
-  const [excelUploadData, setExcelUploadData] = useState({
-    batch: '',
-    passoutYear: '',
-  });
+  const [mode, setMode] = useState('bulk'); // 'bulk' or 'individual'
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [batch, setBatch] = useState('');
+  const [passoutYear, setPassoutYear] = useState('');
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [individualForm, setIndividualForm] = useState({
+    name: '',
+    regNo: '',
+    email: '',
+    batch: '',
+    passoutYear: ''
+  });
 
   const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && !file.name.match(/\.(xlsx|xls)$/)) {
+      setError('Please upload only Excel files (.xlsx or .xls)');
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
     setError('');
-    setSuccessMessage('');
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
   };
 
-  const handleExcelDataChange = (e) => {
+  const handleIndividualInputChange = (e) => {
     const { name, value } = e.target;
-    setExcelUploadData(prev => ({ ...prev, [name]: value }));
+    setIndividualForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setError('');
   };
 
-  const handleParse = async () => {
-    if (!file) {
-      setError('Please select an Excel file to upload.');
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!selectedFile) {
+      setError('Please select an Excel file');
       return;
     }
-    if (!excelUploadData.batch || !excelUploadData.passoutYear) {
-      setError('Please select both batch and passout year.');
+
+    if (!batch) {
+      setError('Please select a batch');
       return;
     }
+
+    if (!passoutYear) {
+      setError('Please enter passout year');
+      return;
+    }
+
     try {
-      const data = await parseExcelFile(file);
-      const columns = Object.keys(data[0] || {}).map(col => col.toLowerCase());
-      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
-      if (missingColumns.length > 0) {
-        setError(`Missing required columns: ${missingColumns.join(', ')}`);
-        setParsedData([]);
-        return;
-      }
-      const enrichedData = data.map(entry => ({
-        ...entry,
-        batch: excelUploadData.batch,
-        passoutYear: excelUploadData.passoutYear,
-      }));
-      setParsedData(enrichedData);
-      setError('');
-    } catch {
-      setError('Failed to parse Excel file. Please ensure it is a valid Excel file.');
-      setParsedData([]);
+      setIsLoading(true);
+      await bulkRegisterStudents(selectedFile, batch, passoutYear);
+      setSuccess('Students registered successfully');
+      // Reset form
+      setSelectedFile(null);
+      setBatch('');
+      setPassoutYear('');
+      // Reset file input
+      const fileInput = document.getElementById('excel-file');
+      if (fileInput) fileInput.value = '';
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to register students');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const handleIndividualSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-  const addIndividualEntry = () => {
-    const { name, regno, mail, batch, passoutYear } = formData;
-    if (!name || !regno || !mail || !batch || !passoutYear) {
-      setError('Please fill all fields to add an entry.');
+    // Validate all fields
+    if (!individualForm.name || !individualForm.regNo || !individualForm.email || 
+        !individualForm.batch || !individualForm.passoutYear) {
+      setError('Please fill in all fields');
       return;
     }
-    setIndividualEntries(prev => [...prev, { name, regno, mail, batch, passoutYear }]);
-    setFormData({
-      name: '',
-      regno: '',
-      mail: '',
-      batch: '',
-      passoutYear: '',
-    });
-    setError('');
-  };
 
-  const handleSubmit = () => {
-    if (mode === 'excel') {
-      if (parsedData.length === 0) {
-        setError('No data to submit. Please parse a valid Excel file first.');
-        return;
-      }
-      setSuccessMessage(`Successfully processed ${parsedData.length} students.`);
-      setError('');
-      setParsedData([]);
-      setFile(null);
-      setExcelUploadData({ batch: '', passoutYear: '' });
-    } else {
-      if (individualEntries.length === 0) {
-        setError('No individual entries to submit. Please add at least one student.');
-        return;
-      }
-      setSuccessMessage(`Successfully processed ${individualEntries.length} students.`);
-      setError('');
-      setIndividualEntries([]);
-      setFormData({
+    try {
+      setIsLoading(true);
+      await registerStudent(individualForm);
+      setSuccess('Student registered successfully');
+      // Reset form
+      setIndividualForm({
         name: '',
-        regno: '',
-        mail: '',
+        regNo: '',
+        email: '',
         batch: '',
-        passoutYear: '',
+        passoutYear: ''
       });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to register student');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Container>
-      <Card>
-        <Title>Bulk Student Enrollment</Title>
-        
-        <ModeSelector>
-          <ModeButtonGroup>
-            <ModeButton
-              active={mode === 'excel'}
-              onClick={() => { setMode('excel'); setError(''); setSuccessMessage(''); }}
-            >
-              Excel Upload
-            </ModeButton>
-            <ModeButton
-              active={mode === 'individual'}
-              onClick={() => { setMode('individual'); setError(''); setSuccessMessage(''); }}
-            >
-              Individual Entry
-            </ModeButton>
-          </ModeButtonGroup>
-        </ModeSelector>
+      <Title>Student Registration</Title>
+      
+      <TabContainer>
+        <Tab 
+          active={mode === 'bulk'} 
+          onClick={() => { setMode('bulk'); setError(''); setSuccess(''); }}
+        >
+          Bulk Upload
+        </Tab>
+        <Tab 
+          active={mode === 'individual'} 
+          onClick={() => { setMode('individual'); setError(''); setSuccess(''); }}
+        >
+          Individual Entry
+        </Tab>
+      </TabContainer>
 
-        {mode === 'excel' ? (
-          <>
-            <FormGrid>
-              <FormGroup>
-                <Label>Select Batch</Label>
-                <Select
-                  name="batch"
-                  value={excelUploadData.batch}
-                  onChange={handleExcelDataChange}
-                >
-                  <option value="">-- Select Batch --</option>
-                  {batchTypes.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
-                  ))}
-                </Select>
-              </FormGroup>
-              <FormGroup>
-                <Label>Select Passout Year</Label>
-                <Select
-                  name="passoutYear"
-                  value={excelUploadData.passoutYear}
-                  onChange={handleExcelDataChange}
-                >
-                  <option value="">-- Select Year --</option>
-                  {passoutYears.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </Select>
-              </FormGroup>
-            </FormGrid>
-
-            <FormGroup>
-              <Label>Upload Excel File</Label>
-              <Input
+      {mode === 'bulk' ? (
+        <Form onSubmit={handleBulkSubmit}>
+          <FormGroup>
+            <Label>Excel File</Label>
+            <FileInputLabel>
+              <FileInput
                 type="file"
-                accept=".xlsx, .xls"
+                id="excel-file"
+                accept=".xlsx,.xls"
                 onChange={handleFileChange}
               />
-              <HelperText>
-                Excel file should contain columns: Name, Registration Number, and Email
-              </HelperText>
+              <span>Choose file</span>
+              {selectedFile && <FileName>{selectedFile.name}</FileName>}
+            </FileInputLabel>
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Batch</Label>
+            <Select
+              value={batch}
+              onChange={(e) => setBatch(e.target.value)}
+            >
+              <option value="">Select Batch</option>
+              {batchTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </Select>
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Passout Year</Label>
+            <Select
+              value={passoutYear}
+              onChange={(e) => setPassoutYear(e.target.value)}
+            >
+              <option value="">Select Year</option>
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </Select>
+          </FormGroup>
+
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          {success && <SuccessMessage>{success}</SuccessMessage>}
+
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Uploading...' : 'Upload'}
+          </Button>
+        </Form>
+      ) : (
+        <Form onSubmit={handleIndividualSubmit}>
+          <FormGrid>
+            <FormGroup>
+              <Label>Name</Label>
+              <Input
+                type="text"
+                name="name"
+                value={individualForm.name}
+                onChange={handleIndividualInputChange}
+                placeholder="Enter student name"
+              />
             </FormGroup>
 
-            <ButtonGroup>
-              <Button onClick={handleParse}>
-                Parse Excel
-              </Button>
-              <Button
-                variant="success"
-                onClick={handleSubmit}
-                disabled={parsedData.length === 0}
-              >
-                Submit Students
-              </Button>
-            </ButtonGroup>
-          </>
-        ) : (
-          <>
-            <FormGrid>
-              <FormGroup>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter student name"
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="regno">Registration Number</Label>
-                <Input
-                  id="regno"
-                  type="text"
-                  name="regno"
-                  value={formData.regno}
-                  onChange={handleInputChange}
-                  placeholder="Enter registration number"
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="mail">Email</Label>
-                <Input
-                  id="mail"
-                  type="email"
-                  name="mail"
-                  value={formData.mail}
-                  onChange={handleInputChange}
-                  placeholder="Enter email address"
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="batch">Batch</Label>
-                <Select
-                  id="batch"
-                  name="batch"
-                  value={formData.batch}
-                  onChange={handleInputChange}
-                >
-                  <option value="">-- Select Batch --</option>
-                  {batchTypes.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
-                  ))}
-                </Select>
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="passoutYear">Passout Year</Label>
-                <Select
-                  id="passoutYear"
-                  name="passoutYear"
-                  value={formData.passoutYear}
-                  onChange={handleInputChange}
-                >
-                  <option value="">-- Select Year --</option>
-                  {passoutYears.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </Select>
-              </FormGroup>
-            </FormGrid>
+            <FormGroup>
+              <Label>Registration Number</Label>
+              <Input
+                type="text"
+                name="regNo"
+                value={individualForm.regNo}
+                onChange={handleIndividualInputChange}
+                placeholder="Enter registration number"
+              />
+            </FormGroup>
 
-            <ButtonGroup>
-              <Button onClick={addIndividualEntry}>
-                Add Student
-              </Button>
-              <Button
-                variant="success"
-                onClick={handleSubmit}
-                disabled={individualEntries.length === 0}
-              >
-                Submit Students
-              </Button>
-            </ButtonGroup>
-          </>
-        )}
+            <FormGroup>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                name="email"
+                value={individualForm.email}
+                onChange={handleIndividualInputChange}
+                placeholder="Enter email address"
+              />
+            </FormGroup>
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
-      </Card>
+            <FormGroup>
+              <Label>Batch</Label>
+              <Select
+                name="batch"
+                value={individualForm.batch}
+                onChange={handleIndividualInputChange}
+              >
+                <option value="">Select Batch</option>
+                {batchTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </Select>
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Passout Year</Label>
+              <Select
+                name="passoutYear"
+                value={individualForm.passoutYear}
+                onChange={handleIndividualInputChange}
+              >
+                <option value="">Select Year</option>
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </Select>
+            </FormGroup>
+          </FormGrid>
+
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          {success && <SuccessMessage>{success}</SuccessMessage>}
+
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Registering...' : 'Register Student'}
+          </Button>
+        </Form>
+      )}
     </Container>
   );
 };

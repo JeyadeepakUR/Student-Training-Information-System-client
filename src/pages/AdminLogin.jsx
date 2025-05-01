@@ -1,185 +1,156 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { loginAdmin } from '../services/api';
 
 const Container = styled.div`
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f9fafb;
-  padding: 3rem 1rem;
-  
-  @media (min-width: 640px) {
-    padding: 3rem 1.5rem;
-  }
-  
-  @media (min-width: 1024px) {
-    padding: 3rem 2rem;
-  }
+  background-color: #f3f4f6;
+  padding: 1rem;
 `;
 
 const FormContainer = styled.div`
-  max-width: 28rem;
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  max-width: 28rem;
 `;
 
-const Title = styled.h2`
-  margin-top: 1.5rem;
-  text-align: center;
+const Title = styled.h1`
   font-size: 1.875rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #111827;
+  text-align: center;
+  margin-bottom: 2rem;
 `;
 
 const Form = styled.form`
-  margin-top: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 `;
 
 const InputGroup = styled.div`
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  gap: -1px;
+  gap: 0.5rem;
 `;
 
 const Label = styled.label`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
 `;
 
 const Input = styled.input`
-  appearance: none;
-  position: relative;
-  display: block;
-  width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.625rem 0.875rem;
   border: 1px solid #d1d5db;
-  background-color: white;
-  color: #111827;
+  border-radius: 0.375rem;
   font-size: 0.875rem;
-  border-radius: ${props => props.isFirst ? '0.375rem 0.375rem 0 0' : '0 0 0.375rem 0.375rem'};
-  
-  &::placeholder {
-    color: #6b7280;
-  }
-  
+  transition: all 200ms;
+
   &:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-    z-index: 10;
   }
 `;
 
 const Button = styled.button`
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border: 1px solid transparent;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: 0.375rem;
-  color: white;
+  padding: 0.625rem 1.25rem;
   background-color: #2563eb;
-  
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms;
+
   &:hover {
     background-color: #1d4ed8;
   }
-  
+
   &:focus {
     outline: none;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 `;
 
 const ErrorMessage = styled.div`
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
   color: #dc2626;
   font-size: 0.875rem;
-  text-align: center;
+  margin-bottom: 1rem;
 `;
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    // Simple validation
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    // For demo purposes, using a simple check
-    // In a real app, you would validate against your backend
-    if (email === 'admin@example.com' && password === 'admin123') {
-      // Store auth state
+    try {
+      const response = await loginAdmin({ email, password });
+      localStorage.setItem('adminToken', response.data.token);
+      localStorage.setItem('adminData', JSON.stringify(response.data.admin));
       localStorage.setItem('isAdminAuthenticated', 'true');
-      // Redirect to dashboard
       navigate('/admin/dashboard');
-    } else {
-      setError('Invalid email or password');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to login. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Container>
       <FormContainer>
-        <div>
-          <Title>Admin Login</Title>
-        </div>
+        <Title>Admin Login</Title>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
         <Form onSubmit={handleSubmit}>
           <InputGroup>
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              name="email"
               type="email"
-              autoComplete="email"
-              required
-              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              isFirst
+              placeholder="Enter your email"
+              required
             />
+          </InputGroup>
+          <InputGroup>
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
-              name="password"
               type="password"
-              autoComplete="current-password"
-              required
-              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
             />
           </InputGroup>
-
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          <Button type="submit">
-            Sign in
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
           </Button>
         </Form>
       </FormContainer>
