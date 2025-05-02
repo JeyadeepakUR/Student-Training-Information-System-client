@@ -63,4 +63,28 @@ export const getStudentModulePerformance = async (studentId, moduleId) => {
   return response.data;
 };
 
+export const uploadBulkScores = async (file, moduleId, examNumber) => {
+  try {
+    const formData = new FormData();
+    formData.append('marksFile', file);
+    formData.append('moduleId', moduleId);
+    formData.append('examNumber', examNumber);
+    // Do NOT set Content-Type header manually!
+    return await api.post('/admin/upload-scores', formData);
+  } catch (error) {
+    console.error('Bulk score upload error:', error);
+    throw error;
+  }
+};
+
+export const uploadIndividualScore = async (studentId, moduleId, examNumber, score) => {
+  const response = await api.post('/admin/upload-score', {
+    studentId,
+    moduleId,
+    examNumber,
+    score
+  });
+  return response.data;
+};
+
 export default api;

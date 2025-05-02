@@ -274,8 +274,8 @@ const BulkUpload = () => {
         <Tab 
           active={mode === 'individual'} 
           onClick={() => { setMode('individual'); setError(''); setSuccess(''); }}
-        >
-          Individual Entry
+            >
+              Individual Entry
         </Tab>
       </TabContainer>
 
@@ -285,10 +285,10 @@ const BulkUpload = () => {
             <Label>Excel File</Label>
             <FileInputLabel>
               <FileInput
-                type="file"
+                  type="file"
                 id="excel-file"
                 accept=".xlsx,.xls"
-                onChange={handleFileChange}
+                  onChange={handleFileChange}
               />
               <span>Choose file</span>
               {selectedFile && <FileName>{selectedFile.name}</FileName>}
@@ -338,40 +338,40 @@ const BulkUpload = () => {
             <FormGroup>
               <Label>Name</Label>
               <Input
-                type="text"
-                name="name"
+                  type="text"
+                  name="name"
                 value={individualForm.name}
                 onChange={handleIndividualInputChange}
-                placeholder="Enter student name"
-              />
+                  placeholder="Enter student name"
+                />
             </FormGroup>
 
             <FormGroup>
               <Label>Registration Number</Label>
               <Input
-                type="text"
+                  type="text"
                 name="regNo"
                 value={individualForm.regNo}
                 onChange={handleIndividualInputChange}
-                placeholder="Enter registration number"
-              />
+                  placeholder="Enter registration number"
+                />
             </FormGroup>
 
             <FormGroup>
               <Label>Email</Label>
               <Input
-                type="email"
+                  type="email"
                 name="email"
                 value={individualForm.email}
                 onChange={handleIndividualInputChange}
-                placeholder="Enter email address"
-              />
+                  placeholder="Enter email address"
+                />
             </FormGroup>
 
             <FormGroup>
               <Label>Batch</Label>
               <Select
-                name="batch"
+                  name="batch"
                 value={individualForm.batch}
                 onChange={handleIndividualInputChange}
               >

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { parseExcelFile } from '../../utils/excelParser';
-import { useSampleData } from '../../utils/sampleDataContext.jsx';
+import { getAllModules, uploadBulkScores, uploadIndividualScore, getModuleStudents } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
-const requiredColumns = ['regno', 'score'];
+const requiredColumns = ['regNo', 'name', 'mark'];
 
 const Container = styled.div`
   display: flex;
@@ -189,257 +189,298 @@ const SuccessMessage = styled.div`
 `;
 
 const ScoreUpload = () => {
-  const { data, updateScores } = useSampleData();
-  const [mode, setMode] = useState('excel');
-  const [modules] = useState(data.modules);
+  const [mode, setMode] = useState('bulk');
+  const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState('');
-  const [file, setFile] = useState(null);
-  const [parsedData, setParsedData] = useState([]);
-  const [individualEntries, setIndividualEntries] = useState([]);
-  const [formData, setFormData] = useState({
-    regno: '',
-    score: '',
-  });
+  const [examNumber, setExamNumber] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [studentId, setStudentId] = useState('');
+  const [score, setScore] = useState('');
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingModules, setIsFetchingModules] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const navigate = useNavigate();
 
-  const handleModuleChange = (e) => {
-    setSelectedModule(e.target.value);
-    setParsedData([]);
-    setIndividualEntries([]);
-    setError('');
-    setSuccessMessage('');
-  };
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        setIsFetchingModules(true);
+        setError('');
+        const response = await getAllModules();
+        console.log(response)
+        if (response.data?.modules) {
+          setModules(response.data.modules);
+        } else {
+          setError('No modules found');
+        }
+      } catch (err) {
+        setError('Failed to fetch modules');
+        setModules([]);
+      } finally {
+        setIsFetchingModules(false);
+      }
+    };
+
+    fetchModules();
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'individual' && selectedModule) {
+      setStudents([]);
+      setSelectedStudentId('');
+      getModuleStudents(selectedModule)
+        .then(res => {
+          if (res.data?.students) {
+            setStudents(res.data.students);
+          }
+        })
+        .catch(() => setStudents([]));
+    }
+  }, [mode, selectedModule]);
 
   const handleFileChange = (e) => {
-    setError('');
-    setSuccessMessage('');
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
-  };
-
-  const handleParse = async () => {
-    if (!selectedModule) {
-      setError('Please select a training module.');
-      return;
-    }
-    if (!file) {
-      setError('Please select an Excel file to upload.');
-      return;
-    }
-    try {
-      const data = await parseExcelFile(file);
-      const columns = Object.keys(data[0] || {}).map(col => col.toLowerCase());
-      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
-      if (missingColumns.length > 0) {
-        setError(`Missing required columns: ${missingColumns.join(', ')}`);
-        setParsedData([]);
-        return;
-      }
-
-      // Validate registration numbers exist in the system
-      const invalidStudents = data.filter(entry => 
-        !data.students.some(student => student.regNo === entry.regno)
-      );
-
-      if (invalidStudents.length > 0) {
-        setError(`Invalid registration numbers found: ${invalidStudents.map(s => s.regno).join(', ')}`);
-        setParsedData([]);
-        return;
-      }
-
-      setParsedData(data);
-      setError('');
-    } catch {
-      setError('Failed to parse Excel file. Please ensure it is a valid Excel file.');
-      setParsedData([]);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const addIndividualEntry = () => {
-    if (!selectedModule) {
-      setError('Please select a training module.');
-      return;
-    }
-    const { regno, score } = formData;
-    if (!regno || !score) {
-      setError('Please fill all fields to add an entry.');
-      return;
-    }
-    if (isNaN(score) || score < 0 || score > 100) {
-      setError('Score must be a number between 0 and 100.');
-      return;
-    }
-
-    // Validate registration number exists
-    const studentExists = data.students.some(student => student.regNo === regno);
-    if (!studentExists) {
-      setError('Invalid registration number. Student not found.');
-      return;
-    }
-
-    setIndividualEntries(prev => [...prev, { regno, score: parseInt(score, 10) }]);
-    setFormData({
-      regno: '',
-      score: '',
-    });
-    setError('');
-  };
-
-  const handleSubmit = () => {
-    if (!selectedModule) {
-      setError('Please select a training module.');
-      return;
-    }
-
-    const dataToSubmit = mode === 'excel' ? parsedData : individualEntries;
-    
-    if (dataToSubmit.length === 0) {
-      setError(`No data to submit. Please ${mode === 'excel' ? 'parse a valid Excel file' : 'add at least one score'} first.`);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      updateScores(selectedModule, dataToSubmit);
-      setSuccessMessage(`Successfully processed scores for ${dataToSubmit.length} students.`);
-      
-      // Reset form state
-      if (mode === 'excel') {
-        setParsedData([]);
-        setFile(null);
+    const file = e.target.files[0];
+    if (file) {
+      if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+          file.type === 'application/vnd.ms-excel') {
+        setSelectedFile(file);
+        setError('');
       } else {
-        setIndividualEntries([]);
-        setFormData({
-          regno: '',
-          score: '',
-        });
+        setError('Please upload an Excel file (.xlsx or .xls)');
+        setSelectedFile(null);
       }
-      setSelectedModule('');
+    }
+  };
+
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setIsLoading(true);
+
+    if (!selectedModule || !examNumber || !selectedFile) {
+      setError('Please fill in all required fields');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await uploadBulkScores(selectedFile, selectedModule, parseInt(examNumber));
+      if (response.data) {
+        setSuccess(`Successfully updated ${response.data.successfulUpdates} scores`);
+        setSelectedFile(null);
+        setSelectedModule('');
+        setExamNumber('');
+        document.getElementById('file-upload').value = '';
+      }
     } catch (err) {
-      console.error('Error submitting scores:', err);
-      setError('Failed to submit scores. Please try again.');
+      setError(err.response?.data?.message || 'Failed to upload scores');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleIndividualSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setIsLoading(true);
+
+    if (!selectedModule || !examNumber || !selectedStudentId || !score) {
+      setError('Please fill in all required fields');
+      setIsLoading(false);
+      return;
+    }
+
+    const payload = {
+      studentId: selectedStudentId,
+      moduleId: selectedModule,
+      examNumber: Number(examNumber),
+      score: Number(score)
+    };
+
+    try {
+      console.log('Uploading individual score with payload:', payload);
+      const response = await uploadIndividualScore(
+        payload.studentId,
+        payload.moduleId,
+        payload.examNumber,
+        payload.score
+      );
+      console.log('API response:', response);
+      if (response) {
+        setSuccess(
+          `Score updated successfully. New average: ${response.progress?.averageScore ?? 'N/A'}`
+        );
+        setTimeout(() => {
+          navigate('/admin/dashboard');
+        }, 1200);
+      }
+    } catch (err) {
+      console.error('Error updating score:', err, err.response);
+      setError(err.response?.message || 'Failed to update score');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <Container>
       <Card>
-        <Title>Upload Exam Scores</Title>
+        <Title>Upload Scores</Title>
         
-        <FormGroup>
-          <Label>Select Training Module</Label>
-          <Select
-            value={selectedModule}
-            onChange={handleModuleChange}
-          >
-            <option value="">-- Select Module --</option>
-            {modules.map((mod) => (
-              <option key={mod._id} value={mod._id}>{mod.title}</option>
-            ))}
-          </Select>
-        </FormGroup>
-
         <ModeSelector>
           <ModeButtonGroup>
             <ModeButton
-              active={mode === 'excel'}
-              onClick={() => { setMode('excel'); setError(''); setSuccessMessage(''); }}
+              active={mode === 'bulk'}
+              onClick={() => setMode('bulk')}
             >
-              Excel Upload
+              Bulk Upload
             </ModeButton>
             <ModeButton
               active={mode === 'individual'}
-              onClick={() => { setMode('individual'); setError(''); setSuccessMessage(''); }}
+              onClick={() => setMode('individual')}
             >
-              Individual Entry
+              Individual Upload
             </ModeButton>
           </ModeButtonGroup>
         </ModeSelector>
 
-        {mode === 'excel' ? (
-          <>
-            <FormGroup>
-              <Label>Upload Score Sheet</Label>
-              <Input
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleFileChange}
-              />
-              <HelperText>
-                Excel file should contain columns: Registration Number (regno) and Score
-              </HelperText>
-            </FormGroup>
-
-            <ButtonGroup>
-              <Button onClick={handleParse} disabled={isSubmitting}>
-                Parse Excel
-              </Button>
-              <Button
-                variant="success"
-                onClick={handleSubmit}
-                disabled={parsedData.length === 0 || isSubmitting}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Scores'}
-              </Button>
-            </ButtonGroup>
-          </>
+        {isFetchingModules ? (
+          <div>Loading modules...</div>
+        ) : error ? (
+          <ErrorMessage>{error}</ErrorMessage>
         ) : (
           <>
-            <FormGrid>
-              <FormGroup>
-                <Label htmlFor="regno">Registration Number</Label>
-                <Input
-                  id="regno"
-                  type="text"
-                  name="regno"
-                  value={formData.regno}
-                  onChange={handleInputChange}
-                  placeholder="Enter registration number"
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label htmlFor="score">Score</Label>
-                <Input
-                  id="score"
-                  type="number"
-                  name="score"
-                  value={formData.score}
-                  onChange={handleInputChange}
-                  placeholder="Enter score (0-100)"
-                  min="0"
-                  max="100"
-                />
-              </FormGroup>
-            </FormGrid>
+            {mode === 'bulk' ? (
+              <form onSubmit={handleBulkSubmit}>
+                <FormGroup>
+                  <Label>Select Module</Label>
+                  <Select 
+                    value={selectedModule} 
+                    onChange={(e) => setSelectedModule(e.target.value)}
+                    required
+                  >
+                    <option value="">Select a module</option>
+                    {modules.map(module => (
+                      <option key={module._id} value={module._id}>
+                        {module.title}
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
 
-            <ButtonGroup>
-              <Button onClick={addIndividualEntry}>
-                Add Score
-              </Button>
-              <Button
-                variant="success"
-                onClick={handleSubmit}
-                disabled={individualEntries.length === 0 || isSubmitting}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Scores'}
-              </Button>
-            </ButtonGroup>
+                <FormGroup>
+                  <Label>Exam Number</Label>
+                  <Select 
+                    value={examNumber} 
+                    onChange={(e) => setExamNumber(e.target.value)}
+                    required
+                  >
+                    <option value="">Select exam number</option>
+                    <option value="1">Exam 1</option>
+                    <option value="2">Exam 2</option>
+                    <option value="3">Exam 3</option>
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Upload Excel File</Label>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    required
+                  />
+                  <HelperText>
+                    File must contain columns: regNo, name, mark
+                  </HelperText>
+                </FormGroup>
+
+                <ButtonGroup>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Uploading...' : 'Upload Scores'}
+                  </Button>
+                </ButtonGroup>
+              </form>
+            ) : (
+              <form onSubmit={handleIndividualSubmit}>
+                <FormGroup>
+                  <Label>Select Module</Label>
+                  <Select 
+                    value={selectedModule} 
+                    onChange={(e) => setSelectedModule(e.target.value)}
+                    required
+                  >
+                    <option value="">Select a module</option>
+                    {modules.map(module => (
+                      <option key={module._id} value={module._id}>
+                        {module.title}
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Exam Number</Label>
+                  <Select 
+                    value={examNumber} 
+                    onChange={(e) => setExamNumber(e.target.value)}
+                    required
+                  >
+                    <option value="">Select exam number</option>
+                    <option value="1">Exam 1</option>
+                    <option value="2">Exam 2</option>
+                    <option value="3">Exam 3</option>
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Select Student</Label>
+                  <Select
+                    value={selectedStudentId}
+                    onChange={e => setSelectedStudentId(e.target.value)}
+                    required
+                    disabled={!students.length}
+                  >
+                    <option value="">{students.length ? 'Select a student' : 'No students found'}</option>
+                    {students.map(student => (
+                      <option key={student._id} value={student._id}>
+                        {student.name} ({student.regNo})
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Score (0-100)</Label>
+                  <Input
+                    type="number"
+                    value={score}
+                    onChange={(e) => setScore(e.target.value)}
+                    placeholder="Enter score"
+                    min="0"
+                    max="100"
+                    required
+                  />
+                </FormGroup>
+
+                <ButtonGroup>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Updating...' : 'Update Score'}
+                  </Button>
+                </ButtonGroup>
+              </form>
+            )}
           </>
         )}
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
+        {success && <SuccessMessage>{success}</SuccessMessage>}
       </Card>
     </Container>
   );
